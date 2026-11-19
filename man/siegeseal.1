@@ -1,0 +1,92 @@
+.TH SIEGESEAL 1 "2026-11-19" "SiegeSeal 1.0.0" "User Commands"
+.SH NAME
+siegeseal \- sign files and verify signed letters with Ed25519
+.SH SYNOPSIS
+.B siegeseal keygen
+.I name
+.br
+.B siegeseal fingerprint
+.I name.pub
+.br
+.B siegeseal sign
+.I name.seal file
+.br
+.B siegeseal verify
+.I name.pub file
+.RI [ file.sig ]
+.br
+.B siegeseal verify-envelope
+.I sender.pub envelope.hex
+.br
+.B siegeseal
+.RB [ \-\-version | \-\-help ]
+.SH DESCRIPTION
+.B siegeseal
+creates Ed25519 key pairs, signs files, and checks signatures, so a reader can
+prove who wrote a file and that nobody has changed it since. It also checks
+letters exported from the SiegeSeal Classroom web app.
+.SH COMMANDS
+.TP
+.BI keygen " name"
+Write
+.IB name .seal
+(the private key, created with mode 600) and
+.IB name .pub
+(the public key), and print the key's fingerprint. Refuses to overwrite an
+existing private key.
+.TP
+.BI fingerprint " name.pub"
+Print the short fingerprint of a public key, for comparing in person.
+.TP
+.BI sign " name.seal file"
+Sign
+.I file
+and write the signature to
+.IB file .sig .
+.TP
+.BI verify " name.pub file \fR[\fPfile.sig\fR]\fP"
+Check that
+.I file
+was signed with the private key matching
+.I name.pub
+and has not changed since.
+.TP
+.BI verify-envelope " sender.pub envelope.hex"
+Decode a letter exported from the web app, print its fields and digest, and
+check its seal against the sender's public key.
+.SH EXIT STATUS
+.TP
+.B 0
+Success; for
+.B verify
+and
+.BR verify-envelope ,
+the signature is genuine.
+.TP
+.B 1
+The signature does not match: the file was changed, or it was signed by someone else.
+.TP
+.B 2
+Usage error, unreadable file, or malformed key.
+.SH FILES
+Key and signature files are one line of text:
+.IR "kind name hex" ,
+where kind is
+.BR siegeseal-secret ,
+.B siegeseal-public
+or
+.BR siegeseal-signature .
+.SH EXAMPLES
+.nf
+siegeseal keygen aurelia
+siegeseal sign aurelia.seal orders.txt
+siegeseal verify aurelia.pub orders.txt && echo genuine
+.fi
+.SH SECURITY
+Keep the
+.B .seal
+file private: anyone who has it can sign as you. A signature proves only that
+the holder of the matching private key signed; compare fingerprints in person
+before trusting a public key. Signing does not encrypt: anyone can read a signed file.
+.SH SEE ALSO
+.BR siege_sim (1)
