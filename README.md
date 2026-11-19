@@ -1,5 +1,7 @@
 # SiegeSeal
 
+[![CI](https://github.com/UDogg/SiegeSeal/actions/workflows/ci.yml/badge.svg)](https://github.com/UDogg/SiegeSeal/actions/workflows/ci.yml) · [Classroom app](https://udogg.github.io/SiegeSeal/) · [Releases](https://github.com/UDogg/SiegeSeal/releases)
+
 **Non-repudiable messaging for parties who don't trust the channel — or each other.**
 
 SiegeSeal is a C++17 library, CLI and simulation, plus a classroom messaging web app that speaks the same protocol, built around a variant of the Byzantine Generals problem:
@@ -61,7 +63,9 @@ The static build is a static PIE: no dynamic loader and no shared libraries, lin
 
 Plain HTML and JavaScript with no build step. The shared "road" between students is a single JSON document in a secret GitHub Gist. The app treats that store as hostile: anyone with the link can rewrite it, exactly like the city on the road, and every check happens on the reader's own device against seals they verified in person.
 
-**Deploy:** push this repo to GitHub, then *Settings → Pages → Build and deployment → Deploy from a branch → `main` / `/docs`*. That's all.
+**Live:** https://udogg.github.io/SiegeSeal/
+
+**Deploy:** in the repo's *Settings → Pages → Build and deployment*, set *Source* to **GitHub Actions** (one time). After that, every push to `main` runs the full test suite and, if it passes, publishes `docs/` to Pages ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). A fork works the same way.
 
 **Try it locally:** `python3 -m http.server -d docs 8000` and open http://localhost:8000. Choose *Try it on this computer* and open several tabs, one per army.
 
@@ -99,6 +103,8 @@ cmake --install build --prefix ~/.local
 ```bash
 scripts/release.sh          # writes dist/
 ```
+
+To publish one, bump `VERSION` in `CMakeLists.txt`, add a `CHANGELOG.md` entry, and push a matching tag (`git tag v1.0.0 && git push origin v1.0.0`). [`.github/workflows/release.yml`](.github/workflows/release.yml) runs the script and attaches everything in `dist/` to a GitHub release, with the changelog entry as its notes.
 
 The script builds both variants, runs every test on each, packages them with CPack, unpacks the tarballs and re-runs the checks on the packaged binaries, and writes `SHA256SUMS`. For the static variant it downloads OpenSSL 3.0.17, checks it against a pinned SHA-256, and builds it for musl with [Zig](https://ziglang.org) (`pip install ziglang`). Set `SIEGESEAL_SKIP_STATIC=1` to build only the glibc variant.
 
