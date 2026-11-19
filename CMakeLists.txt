@@ -127,6 +127,7 @@ if(SIEGESEAL_BUILD_TESTS)
   if(NODE_EXECUTABLE)
     add_test(NAME web_protocol COMMAND ${NODE_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/web/protocol.test.mjs" "$<TARGET_FILE:siegeseal_cli>")
     add_test(NAME web_store COMMAND ${NODE_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/web/store.test.mjs")
+    add_test(NAME web_records COMMAND ${NODE_EXECUTABLE} "${CMAKE_SOURCE_DIR}/tests/web/records.test.mjs")
   endif()
 endif()
 

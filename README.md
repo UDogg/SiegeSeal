@@ -61,15 +61,22 @@ The static build is a static PIE: no dynamic loader and no shared libraries, lin
 
 ## Classroom web app
 
-Plain HTML and JavaScript with no build step. The shared "road" between students is a single JSON document in a secret GitHub Gist. The app treats that store as hostile: anyone with the link can rewrite it, exactly like the city on the road, and every check happens on the reader's own device against seals they verified in person.
+Plain HTML and JavaScript with no build step, served from `docs/` by GitHub Pages. Two pages share the same signing code and storage:
+
+| Page | For | What students do |
+|---|---|---|
+| **SiegeSeal Records** (`index.html`, the start page) | CRUD and non-repudiation, 3–5 students per board | Create, read, update and delete records; every operation is signed. A *Database admin* tab rewrites, removes and forges entries; a switch shows the same board with signatures ignored; any entry exports as a proof anyone can check. |
+| **Siege of Vharos** (`siege.html`) | Going further: replay, ordering, receipts, equivocation | Send sealed letters between three armies while one student plays the city and attacks them. |
+
+The shared state is a single JSON document in a secret GitHub Gist (or browser storage for a one-computer practice run). The apps treat that store as hostile: anyone with the link can rewrite it, and every check happens on the reader's own device. Lesson plans and classroom limits are in [TEACHING.md](TEACHING.md).
 
 **Live:** https://udogg.github.io/SiegeSeal/
 
 **Deploy:** in the repo's *Settings → Pages → Build and deployment*, set *Source* to **GitHub Actions** (one time). After that, every push to `main` runs the full test suite and, if it passes, publishes `docs/` to Pages ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)). A fork works the same way.
 
-**Try it locally:** `python3 -m http.server -d docs 8000` and open http://localhost:8000. Choose *Try it on this computer* and open several tabs, one per army.
+**Try it locally:** `python3 -m http.server -d docs 8000` and open http://localhost:8000. Choose *Practice on this computer* and open several tabs, one per student.
 
-What students can do:
+In the Siege of Vharos, students can:
 - **Letters:** send sealed letters, see each one verified (or its seal cracked) and get signed receipts back.
 - **Check seals switch:** turn verification off to see that tampered letters look exactly like real ones.
 - **Seal ceremony:** compare key fingerprints in person; a seal that changes later raises an alarm.
@@ -77,7 +84,7 @@ What students can do:
 - **Tribunal:** export a letter or receipt as evidence that anyone can check; catch an ally telling two stories.
 - **Treaty:** a joint plan that binds only when everyone seals the identical words.
 
-Storage backends: GitHub Gist (classroom), browser storage (one computer, many tabs), or any JSON URL that accepts GET and PUT. A lesson plan and the classroom limits are in [TEACHING.md](TEACHING.md).
+Storage backends: GitHub Gist (classroom) or browser storage (one computer, many tabs); the Siege also accepts any JSON URL that answers GET and PUT.
 
 ## Build the C++ code
 
@@ -154,9 +161,11 @@ cmake/               CMake package config (find_package(SiegeSeal))
 man/                 siegeseal(1), siege_sim(1)
 docs/                the classroom web app (GitHub Pages root)
   js/protocol.js     JavaScript port of the protocol
+  js/records.js      signed CRUD log: operations, rebuild, proofs (SiegeSeal Records)
+  js/crud.js         the SiegeSeal Records interface (index.html)
   js/store.js        Gist / browser / JSON-URL storage
   js/seal.js         draws a wax seal unique to each public key
-  js/app.js          the interface
+  js/app.js          the Siege of Vharos interface (siege.html)
   js/vendor/         TweetNaCl (public domain) for Ed25519
 ```
 
@@ -193,9 +202,10 @@ Exit status: 0 genuine, 1 signature does not match, 2 usage or file error. Full 
 ./build/siegeseal_tests                          # C++
 node tests/web/protocol.test.mjs build/siegeseal # JS protocol + C++ interop
 node tests/web/store.test.mjs                    # Gist backend against a mock GitHub API
+node tests/web/records.test.mjs                  # signed CRUD: every Database admin attack
 ```
 
-GitHub Actions runs all three on every push.
+GitHub Actions runs all of them on every push.
 
 ## Performance
 

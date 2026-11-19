@@ -82,7 +82,7 @@ export function generateSeed() { return toHex(randomBytes(32)); }
 export function publicKeyFromSeed(seedHex) {
   return toHex(nacl().sign.keyPair.fromSeed(fromHex(seedHex, 32)).publicKey);
 }
-function signBytes(seedHex, msg) {
+export function signBytes(seedHex, msg) {
   const kp = nacl().sign.keyPair.fromSeed(fromHex(seedHex, 32));
   return toHex(nacl().sign.detached(msg, kp.secretKey));
 }
@@ -98,7 +98,7 @@ function remember(map, key, value) {
 }
 const verified = new Map();
 export const stats = { verifications: 0, cacheHits: 0 };
-function verifyBytes(pubHex, msg, sigHex) {
+export function verifyBytes(pubHex, msg, sigHex) {
   if (typeof pubHex !== "string" || typeof sigHex !== "string") return false;
   const key = pubHex + sigHex + toHex(msg);
   const hit = verified.get(key);
