@@ -1,0 +1,44 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install dependencies
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends cmake libssl-dev
+          pip install ziglang==0.17.1
+          echo "$(python -c 'import ziglang, os; print(os.path.dirname(ziglang.__file__))')" >> "$GITHUB_PATH"
+      - name: Check the tag matches the version
+        if: startsWith(github.ref, 'refs/tags/')
+        run: |
+          version=$(sed -n 's/^  VERSION \([0-9.]*\)$/\1/p' CMakeLists.txt)
+          [ "v$version" = "$GITHUB_REF_NAME" ] || { echo "tag $GITHUB_REF_NAME != CMake version $version"; exit 1; }
+      - name: Build, test and package
+        run: sh scripts/release.sh dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: siegeseal-dist
+          path: dist/
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          notes=$(awk -v v="${GITHUB_REF_NAME#v}" '$0 ~ "^## "v" " {f=1; next} /^## / && f {exit} f' CHANGELOG.md)
+          gh release create "$GITHUB_REF_NAME" dist/* --title "SiegeSeal ${GITHUB_REF_NAME#v}" --notes "$notes"
