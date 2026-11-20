@@ -136,7 +136,16 @@ details.more summary { cursor: pointer; color: var(--act); }
 .switch input:checked::after { transform: translateX(1.1rem); }
 
 nav.tabs { padding: 1rem .6rem; border-right: 1.5px solid var(--line); }
-@media (min-width: 861px) { nav.tabs > * { position: sticky; top: 4.2rem; } }
+/* Desktop: the whole menu sticks below the bar. (Making each button sticky on
+   its own stacked them all at the same spot once the page scrolled.) The
+   divider is drawn on the shell so it still runs the full height. */
+@media (min-width: 861px) {
+  .shell { background: linear-gradient(var(--line), var(--line)) 208.5px 0 / 1.5px 100% no-repeat; }
+  nav.tabs {
+    border-right: 0; position: sticky; top: 3.2rem; align-self: start;
+    max-height: calc(100vh - 3.2rem); overflow-y: auto;
+  }
+}
 nav.tabs button {
   display: flex; width: 100%; align-items: center; justify-content: space-between;
   text-align: left; background: transparent; color: var(--ink); border: 0; border-radius: 4px;
@@ -275,3 +284,28 @@ details.raw pre { white-space: pre-wrap; word-break: break-all; font-size: .8rem
 .toast[hidden] { display: none; }
 .counter { margin-left: auto; font-size: .85rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
 .counter.near { color: var(--warn); }
+
+/* ---- SiegeSeal Records (index.html) --------------------------------------------- */
+.eyebrow { font-size: .85rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--act); margin-bottom: .4rem; }
+.records { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem; max-width: 1100px; margin-top: 1.2rem; }
+.record { background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; padding: .8rem 1rem .9rem; box-shadow: var(--shadow); min-width: 0; }
+.record .meta { display: flex; align-items: center; gap: .45rem; font-size: .9rem; margin-bottom: .4rem; }
+.record h3 { margin: .2rem 0 .3rem; overflow-wrap: anywhere; }
+.record .body { font-family: var(--serif); font-size: 1.05rem; white-space: pre-wrap; overflow-wrap: anywhere; margin-bottom: .5rem; }
+.record .foot { gap: .3rem .7rem; font-size: .88rem; padding-top: .5rem; border-top: 1px dashed var(--line); }
+.record.deleted { opacity: .6; }
+.record.deleted h3, .record.deleted .body { text-decoration: line-through; }
+.record.editing { border-color: var(--act); grid-column: 1 / -1; max-width: 640px; }
+.log { list-style: none; padding: 0; margin: 0; display: grid; gap: .6rem; max-width: 820px; }
+.entry { background: var(--paper); border: 1.5px solid var(--line); border-radius: 4px; padding: .6rem .8rem; }
+.entry.bad { border-color: var(--bad); background: var(--bad-tint); }
+.entry .row { gap: .5rem; }
+.entry q { font-family: var(--serif); }
+.entry .body { margin: .3rem 0 .2rem; color: var(--ink-soft); white-space: pre-wrap; overflow-wrap: anywhere; }
+.entry details.raw pre { margin: .4rem 0; }
+.city-grid select, .toolbox select { margin-bottom: .2rem; }
+.toolbox .row select { width: auto; flex: 0 0 auto; }
+@media (max-width: 860px) {
+  .records { grid-template-columns: 1fr; }
+  .city-grid { grid-template-columns: 1fr; }
+}

@@ -18,7 +18,9 @@ First release.
 - All three take `--version` and `--help`.
 
 ### Classroom web app
-- Static site under `share/siegeseal/web`; byte-compatible with the C++ library.
+- **SiegeSeal Records** (the start page): signed create/read/update/delete for 3–5 students, with a Database admin attacker, a signatures on/off switch, removal detection and portable proofs.
+- **Siege of Vharos** (`siege.html`): the messaging game; byte-compatible with the C++ library.
+- Static site under `share/siegeseal/web`.
 
 ### Release build
 - Binaries link OpenSSL and the C++ runtime statically, and need only the system C library.

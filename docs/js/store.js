@@ -4,6 +4,10 @@
 // like the city of Vharos standing on the road. The protocol never relies on
 // the store being honest; it only needs the store to carry bytes.
 //
+// Every store carries one kind of document, described by a schema:
+//   { file, prefix, newDoc(title), normalize(doc), compact(doc), what }
+// ROOM is the classroom messaging room; records.js defines the CRUD board.
+//
 // Three backends share one interface:
 //   pull()      -> the latest document, or null if nothing changed since the last pull/update
 //   update(fn)  -> read fresh, apply fn(doc), trim, write back (serialised per client)
@@ -61,13 +65,17 @@ export function compact(doc) {
   return doc;
 }
 
-function parse(raw) {
-  if (!raw || !raw.trim()) return normalize(newRoom());
+export const ROOM = { file: FILE, prefix: "siegeseal:room:", newDoc: newRoom, normalize, compact, what: "a SiegeSeal room" };
+
+function parse(raw, schema) {
+  if (!raw || !raw.trim()) return schema.normalize(schema.newDoc());
+  let json;
   try {
-    return normalize(JSON.parse(raw));
+    json = JSON.parse(raw);
   } catch {
     throw new Error("The room's data is not valid JSON. Someone may have damaged it; start a new room.");
   }
+  return schema.normalize(json);
 }
 
 class Serial {
@@ -82,7 +90,8 @@ class Serial {
 // Shared logic: subclasses implement readRaw(conditional) -> string | null (unchanged)
 // and writeRaw(string).
 class Store {
-  constructor() {
+  constructor(schema = ROOM) {
+    this.schema = schema;
     this.raw = null; // exact text of the last version this client saw or wrote
     this.serial = new Serial();
   }
@@ -91,14 +100,14 @@ class Store {
       const raw = await this.readRaw(true);
       if (raw === null || raw === this.raw) return null;
       this.raw = raw;
-      return parse(raw);
+      return parse(raw, this.schema);
     });
   }
   update(fn) {
     return this.serial.run(async () => {
-      const doc = parse(await this.readRaw(false));
+      const doc = parse(await this.readRaw(false), this.schema);
       fn(doc);
-      const raw = JSON.stringify(compact(doc));
+      const raw = JSON.stringify(this.schema.compact(doc));
       await this.writeRaw(raw);
       this.raw = raw; // our own write is not news on the next pull
       return doc;
@@ -108,16 +117,16 @@ class Store {
 
 // ---- this device only: localStorage, shared between tabs -------------------
 export class LocalStore extends Store {
-  constructor(id) {
-    super();
+  constructor(id, schema = ROOM) {
+    super(schema);
     this.id = id;
-    this.key = "siegeseal:room:" + id;
+    this.key = schema.prefix + id;
     this.pollMs = 3000; // other tabs' writes also arrive instantly via the storage event
     this.label = "This computer only";
   }
-  static create(title) {
+  static create(title, schema = ROOM) {
     const id = Math.random().toString(36).slice(2, 10);
-    LS.setItem("siegeseal:room:" + id, JSON.stringify(newRoom(title)));
+    LS.setItem(schema.prefix + id, JSON.stringify(schema.newDoc(title)));
     return id;
   }
   async readRaw() {
@@ -150,8 +159,8 @@ async function ghError(res) {
 const GH = { Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28" };
 
 export class GistStore extends Store {
-  constructor(id, token) {
-    super();
+  constructor(id, token, schema = ROOM) {
+    super(schema);
     this.id = id;
     this.token = token || "";
     this.etag = null;
@@ -165,14 +174,14 @@ export class GistStore extends Store {
     if (this.token) h.Authorization = "Bearer " + this.token;
     return h;
   }
-  static async create(token, title) {
+  static async create(token, title, schema = ROOM) {
     const res = await fetch("https://api.github.com/gists", {
       method: "POST",
       headers: { ...GH, Authorization: "Bearer " + token, "Content-Type": "application/json" },
       body: JSON.stringify({
-        description: "SiegeSeal classroom: " + (title || "The Siege of Vharos"),
+        description: "SiegeSeal classroom: " + (title || schema.newDoc().title),
         public: false,
-        files: { [FILE]: { content: JSON.stringify(newRoom(title)) } },
+        files: { [schema.file]: { content: JSON.stringify(schema.newDoc(title)) } },
       }),
     });
     if (!res.ok) throw await ghError(res);
@@ -184,8 +193,8 @@ export class GistStore extends Store {
     if (res.status === 304) return null;
     if (!res.ok) throw await ghError(res);
     this.etag = res.headers.get("etag");
-    const f = (await res.json()).files?.[FILE];
-    if (!f) throw new Error(`This gist has no ${FILE} file, so it is not a SiegeSeal room.`);
+    const f = (await res.json()).files?.[this.schema.file];
+    if (!f) throw new Error(`This gist has no ${this.schema.file} file, so it is not ${this.schema.what}.`);
     return f.truncated ? (await fetch(f.raw_url, { cache: "no-store" })).text() : f.content;
   }
   async writeRaw(raw) {
@@ -193,7 +202,7 @@ export class GistStore extends Store {
     const res = await fetch(`https://api.github.com/gists/${this.id}`, {
       method: "PATCH",
       headers: this.headers({ "Content-Type": "application/json" }),
-      body: JSON.stringify({ files: { [FILE]: { content: raw } } }),
+      body: JSON.stringify({ files: { [this.schema.file]: { content: raw } } }),
     });
     if (!res.ok) throw await ghError(res);
     this.etag = null; // the next pull refetches once; identical content is then ignored
@@ -206,8 +215,8 @@ export class GistStore extends Store {
 
 // ---- any URL that answers GET with JSON and accepts PUT ---------------------
 export class JsonUrlStore extends Store {
-  constructor(url) {
-    super();
+  constructor(url, schema = ROOM) {
+    super(schema);
     this.url = url;
     this.etag = null;
     this.pollMs = 4000;

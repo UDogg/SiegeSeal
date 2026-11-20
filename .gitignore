@@ -1,0 +1,14 @@
+# Build trees (cmake -B build, scripts/release.sh)
+/build*/
+/build*.log
+/dist/
+
+# Private seals (keys) made while trying the CLI
+*.seal
+
+# Editors and OS clutter
+.DS_Store
+*.swp
+.vscode/
+.idea/
+node_modules/
